@@ -10,7 +10,7 @@ const DEFAULT_VOICE = "JBFqnCBsd6RMkjVDRZzb";
 const ELEVENLABS_MAX_CONCURRENT = 5;
 
 /** OpenAI Images API — GPT Image 1.5 snapshot. */
-const IMAGE_MODEL = "gpt-image-1.5-2025-12-16";
+const IMAGE_MODEL = "gpt-image-1";
 
 async function mapInBatches<T, R>(
   items: T[],
@@ -179,7 +179,7 @@ export async function POST(req: Request) {
           const img = await openai.images.generate({
             model: IMAGE_MODEL,
             prompt: fullPrompt.slice(0, 32000),
-            size: "1024x1024",
+            size: "1536x1024",
             quality: "medium",
             n: 1,
           });
