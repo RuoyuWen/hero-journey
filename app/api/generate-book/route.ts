@@ -1,13 +1,16 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
-import { imagePromptSuffix } from "@/lib/prompts";
-import type { ArtStyle, ScenePlan } from "@/lib/types";
+import { buildCharacterBibleBlock, imagePromptSuffix } from "@/lib/prompts";
+import type { ArtStyle, ScenePlan, SupportingCharacter } from "@/lib/types";
 
 /** Default voice from ElevenLabs docs; replace in UI if you prefer another voice. */
 const DEFAULT_VOICE = "JBFqnCBsd6RMkjVDRZzb";
 
 /** ElevenLabs enforces a concurrent request cap per account (often 5 on lower tiers). */
 const ELEVENLABS_MAX_CONCURRENT = 5;
+
+/** OpenAI Images API — GPT Image 1.5 snapshot. */
+const IMAGE_MODEL = "gpt-image-1.5-2025-12-16";
 
 async function mapInBatches<T, R>(
   items: T[],
@@ -96,9 +99,18 @@ async function elevenLabsSoundscape(apiKey: string): Promise<string> {
   return bufferToDataUrl(buf, "audio/mpeg");
 }
 
-function buildFullImagePrompt(scene: ScenePlan, style: ArtStyle): string {
+function buildFullImagePrompt(
+  scene: ScenePlan,
+  style: ArtStyle,
+  refinedAvatarDescription: string,
+  supportingCharacters: SupportingCharacter[]
+): string {
+  const bible = buildCharacterBibleBlock(
+    refinedAvatarDescription,
+    supportingCharacters
+  );
   const suffix = imagePromptSuffix(style);
-  return `${scene.imagePrompt}\n\n${suffix}`;
+  return `${scene.imagePrompt.trim()}\n\n${bible}\n\n${suffix}`;
 }
 
 export async function POST(req: Request) {
@@ -107,6 +119,8 @@ export async function POST(req: Request) {
     elevenLabsKey?: string;
     style?: ArtStyle;
     scenes?: ScenePlan[];
+    refinedAvatarDescription?: string;
+    supportingCharacters?: SupportingCharacter[];
     voiceId?: string;
   };
 
@@ -120,6 +134,10 @@ export async function POST(req: Request) {
   const elevenKey = body.elevenLabsKey?.trim();
   const style = body.style;
   const scenes = body.scenes;
+  const refinedAvatarDescription = body.refinedAvatarDescription?.trim() ?? "";
+  const supportingCharacters = Array.isArray(body.supportingCharacters)
+    ? body.supportingCharacters
+    : [];
   const voiceId = body.voiceId?.trim() || DEFAULT_VOICE;
 
   if (!openaiKey) {
@@ -134,6 +152,15 @@ export async function POST(req: Request) {
       { status: 400 }
     );
   }
+  if (refinedAvatarDescription.length < 40) {
+    return NextResponse.json(
+      {
+        error:
+          "Refined avatar description is missing or too short. Regenerate the 8-scene outline first.",
+      },
+      { status: 400 }
+    );
+  }
 
   const openai = new OpenAI({ apiKey: openaiKey });
 
@@ -143,17 +170,21 @@ export async function POST(req: Request) {
       elevenLabsSoundscape(elevenKey),
       Promise.all(
         scenes.map(async (scene) => {
-          const fullPrompt = buildFullImagePrompt(scene, style);
+          const fullPrompt = buildFullImagePrompt(
+            scene,
+            style,
+            refinedAvatarDescription,
+            supportingCharacters
+          );
           const img = await openai.images.generate({
-            model: "dall-e-3",
-            prompt: fullPrompt.slice(0, 4000),
+            model: IMAGE_MODEL,
+            prompt: fullPrompt.slice(0, 32000),
             size: "1024x1024",
-            quality: "standard",
-            response_format: "b64_json",
+            quality: "medium",
             n: 1,
           });
           const b64 = img.data?.[0]?.b64_json;
-          if (!b64) throw new Error("No image data from DALL·E 3.");
+          if (!b64) throw new Error("No image data from the image model.");
           return {
             sceneNumber: scene.sceneNumber,
             imageDataUrl: `data:image/png;base64,${b64}`,

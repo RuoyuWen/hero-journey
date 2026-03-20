@@ -89,6 +89,8 @@ export default function HomePage() {
           elevenLabsKey: elevenKey,
           style,
           scenes: plan.scenes,
+          refinedAvatarDescription: plan.refinedAvatarDescription,
+          supportingCharacters: plan.supportingCharacters,
           voiceId: voiceId.trim() || undefined,
         }),
       });
@@ -240,6 +242,35 @@ export default function HomePage() {
           </h2>
           <p className="mt-1 font-serif text-xl text-stone-700">{plan.bookTitle}</p>
           <p className="mt-2 text-stone-600">{plan.dedication}</p>
+
+          <div className="mt-6 rounded-xl border border-sage/30 bg-paper/90 p-4">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-sage">
+              Protagonist (AI-refined for art consistency)
+            </h3>
+            <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-stone-800">
+              {plan.refinedAvatarDescription}
+            </p>
+            {plan.supportingCharacters.length > 0 && (
+              <>
+                <h3 className="mt-4 text-sm font-semibold uppercase tracking-wide text-sage">
+                  Other important characters
+                </h3>
+                <ul className="mt-2 space-y-3">
+                  {plan.supportingCharacters.map((c, idx) => (
+                    <li key={idx} className="text-sm text-stone-800">
+                      <span className="font-semibold text-ink">{c.roleLabel}:</span>{" "}
+                      <span className="leading-relaxed">{c.visualDescription}</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+            <p className="mt-3 text-xs text-stone-500">
+              These descriptions are injected into every illustration prompt so the hero
+              and recurring cast stay visually consistent.
+            </p>
+          </div>
+
           <ol className="mt-6 space-y-4">
             {plan.scenes.map((s) => (
               <li

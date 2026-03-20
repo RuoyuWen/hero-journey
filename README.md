@@ -1,6 +1,6 @@
 # Hero Journey — Healing Picture Book
 
-Turn a short personal story into an **8-scene spoken picture book**: AI-written narration, **DALL·E 3** illustrations, **ElevenLabs** voiceovers, and soft **looping background audio**. The experience is designed to feel **warm, dignified, and hopeful**—especially for **stroke survivors** and people close to them. The interface and generated text are **English**.
+Turn a short personal story into an **8-scene spoken picture book**: AI-written narration ( **`gpt-4.1`** ), **GPT Image 1.5** illustrations (`gpt-image-1.5-2025-12-16`), **ElevenLabs** voiceovers, and soft **looping background audio**. The experience is designed to feel **warm, dignified, and hopeful**—especially for **stroke survivors** and people close to them. The interface and generated text are **English**.
 
 ---
 
@@ -8,8 +8,8 @@ Turn a short personal story into an **8-scene spoken picture book**: AI-written 
 
 | Step | What happens |
 |------|----------------|
-| **Plan** | OpenAI expands your story into **8 scenes**, each with an image prompt + narration script (structured JSON). |
-| **Illustrate** | **DALL·E 3** renders one image per scene, following your chosen art style and avatar description. |
+| **Plan** | OpenAI expands your story into **8 scenes**, each with an image prompt + narration script. It also writes a **refined protagonist visual bible** from your avatar notes and, when the story implies them, **detailed descriptions for other recurring characters**—used for consistent illustration. |
+| **Illustrate** | **GPT Image 1.5** (`gpt-image-1.5-2025-12-16`) renders one image per scene, following your chosen art style and avatar description. |
 | **Speak** | **ElevenLabs** text-to-speech reads each scene’s narration. |
 | **Music** | **ElevenLabs** `sound-generation` produces one **loopable** ambient bed under the voice. |
 | **Play** | In-browser player: scene-by-scene images, text, **Play voice**, **Previous / Next**, BGM on/off and volume. |
@@ -19,7 +19,7 @@ Turn a short personal story into an **8-scene spoken picture book**: AI-written 
 ## Tech stack
 
 - **Next.js 15** (App Router) + **TypeScript** + **Tailwind CSS**
-- **OpenAI** (`openai` SDK): `chat.completions` + JSON schema for planning; `images.generate` (DALL·E 3) for art
+- **OpenAI** (`openai` SDK): `chat.completions` + JSON schema for planning (**`gpt-4.1`**); `images.generate` with **`gpt-image-1.5-2025-12-16`** for art
 - **ElevenLabs** (HTTPS): Text-to-speech + sound generation
 
 ---
@@ -101,9 +101,9 @@ Open **http://localhost:3000**.
 | `story` | string | ✓ |
 | `avatarDescription` | string | ✓ |
 | `style` | `"watercolor"` \| `"soft_pastel"` \| `"picture_book_flat"` \| `"warm_gouache"` \| `"ink_wash"` | ✓ |
-| `model` | string | optional (default `gpt-4o-mini`) |
+| `model` | string | optional (default **`gpt-4.1`**) |
 
-**Response:** `{ plan: { bookTitle, dedication, scenes: [...] } }` — 8 scenes with `sceneNumber`, `title`, `imagePrompt`, `narration`.
+**Response:** `{ plan: { bookTitle, dedication, refinedAvatarDescription, supportingCharacters, scenes: [...] } }` — `refinedAvatarDescription` is the AI-enriched hero model sheet; `supportingCharacters` is an array of `{ roleLabel, visualDescription }` (0–6 entries). Scenes include `sceneNumber`, `title`, `imagePrompt`, `narration`.
 
 ### `POST /api/generate-book`
 
@@ -116,8 +116,10 @@ Open **http://localhost:3000**.
 | `style` | same as above | ✓ |
 | `scenes` | array (length 8) | ✓ |
 | `voiceId` | string | optional |
+| `refinedAvatarDescription` | string | ✓ (from latest plan) |
+| `supportingCharacters` | array | optional (defaults to `[]`) |
 
-**Response:** `{ backgroundMusicUrl, pages }` — data URLs (base64) for images and MP3 audio.
+**Response:** `{ backgroundMusicUrl, pages }` — data URLs (base64) for images and MP3 audio. Each image prompt includes the **character visual bible** (hero + supporting cast) for consistency.
 
 ---
 
@@ -134,8 +136,8 @@ If you still hit **429** / rate limits, lower that constant (e.g. to `3`) or upg
 
 ### OpenAI
 
-- Planning uses **`gpt-4o-mini`** by default (change in `plan-story` if needed).
-- Images use **`dall-e-3`** at `1024×1024`; costs and provider rate limits apply.
+- Planning uses **`gpt-4.1`** by default (`DEFAULT_PLANNER_MODEL` in `app/api/plan-story/route.ts`; override with JSON body `model` if needed).
+- Images use **`gpt-image-1.5-2025-12-16`** at `1024×1024`, `quality: medium`; costs and provider rate limits apply.
 
 ---
 
@@ -152,7 +154,7 @@ If you still hit **429** / rate limits, lower that constant (e.g. to `3`) or upg
 |-------|-------------|
 | `npm WARN EBADENGINE` for `eslint-visitor-keys` | Upgrade Node to **20.19+** or **22 LTS**. |
 | ElevenLabs `concurrent_limit_exceeded` (429) | Already mitigated by batching; reduce `ELEVENLABS_MAX_CONCURRENT` or upgrade plan. |
-| Long generation time | Expected: 8 DALL·E images + many audio calls. Keep the tab open. |
+| Long generation time | Expected: 8 GPT Image generations + many audio calls. Keep the tab open. |
 | Empty or odd JSON from OpenAI | Retry; ensure the story is long enough and the key has access to the chosen model. |
 
 ---
@@ -168,7 +170,7 @@ If you still hit **429** / rate limits, lower that constant (e.g. to `3`) or upg
 
 ## 中文简介
 
-**Hero Journey** 是一个网页应用：输入个人故事与角色、画风后，由 **OpenAI** 扩写为 **8 幕**绘本大纲（旁白 + 配图提示），再生成 **DALL·E 3** 插图、**ElevenLabs** 语音与一段可循环的**背景音乐**，最后在浏览器里以「有声绘本」形式播放。面向脑中风康复者及家属，语气强调**温馨、有尊严、励志**；界面与生成内容为**英文**。
+**Hero Journey** 是一个网页应用：输入个人故事与角色、画风后，由 **OpenAI（`gpt-4.1`）** 扩写为 **8 幕**绘本大纲（旁白 + 配图提示），再生成 **`gpt-image-1.5-2025-12-16`** 插图、**ElevenLabs** 语音与一段可循环的**背景音乐**，最后在浏览器里以「有声绘本」形式播放。面向脑中风康复者及家属，语气强调**温馨、有尊严、励志**；界面与生成内容为**英文**。
 
 本地运行：`npm install` → `npm run dev` → 浏览器打开 http://localhost:3000 。API Key 目前存在 **sessionStorage**，仅适合演示；正式产品请把密钥放在服务端。
 

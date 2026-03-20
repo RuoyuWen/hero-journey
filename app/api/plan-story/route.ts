@@ -5,6 +5,9 @@ import type { ArtStyle, StoryPlan } from "@/lib/types";
 
 const SCHEMA_NAME = "story_plan";
 
+/** Story outline + image/narration descriptions (Chat Completions). */
+const DEFAULT_PLANNER_MODEL = "gpt-4.1";
+
 export async function POST(req: Request) {
   let body: {
     openaiKey?: string;
@@ -23,7 +26,7 @@ export async function POST(req: Request) {
   const story = body.story?.trim();
   const avatarDescription = body.avatarDescription?.trim();
   const style = body.style;
-  const model = body.model?.trim() || "gpt-4o-mini";
+  const model = body.model?.trim() || DEFAULT_PLANNER_MODEL;
 
   if (!openaiKey) {
     return NextResponse.json({ error: "OpenAI API key is required." }, { status: 400 });
@@ -52,10 +55,35 @@ export async function POST(req: Request) {
     schema: {
       type: "object",
       additionalProperties: false,
-      required: ["bookTitle", "dedication", "scenes"],
+      required: [
+        "bookTitle",
+        "dedication",
+        "refinedAvatarDescription",
+        "supportingCharacters",
+        "scenes",
+      ],
       properties: {
         bookTitle: { type: "string" },
         dedication: { type: "string" },
+        refinedAvatarDescription: {
+          type: "string",
+          description:
+            "AI-refined model-sheet description of the protagonist for consistent art.",
+        },
+        supportingCharacters: {
+          type: "array",
+          minItems: 0,
+          maxItems: 6,
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["roleLabel", "visualDescription"],
+            properties: {
+              roleLabel: { type: "string" },
+              visualDescription: { type: "string" },
+            },
+          },
+        },
         scenes: {
           type: "array",
           minItems: 8,
@@ -96,6 +124,15 @@ export async function POST(req: Request) {
     }
 
     const plan = JSON.parse(raw) as StoryPlan;
+    if (!plan.refinedAvatarDescription?.trim() || plan.refinedAvatarDescription.trim().length < 40) {
+      return NextResponse.json(
+        { error: "Planner returned an avatar bible that is too short; try again." },
+        { status: 502 }
+      );
+    }
+    if (!Array.isArray(plan.supportingCharacters)) {
+      return NextResponse.json({ error: "Invalid supportingCharacters in plan." }, { status: 502 });
+    }
     const sorted = [...plan.scenes].sort((a, b) => a.sceneNumber - b.sceneNumber);
     for (let i = 0; i < 8; i++) {
       if (sorted[i]?.sceneNumber !== i + 1) {
@@ -106,7 +143,9 @@ export async function POST(req: Request) {
       }
     }
 
-    return NextResponse.json({ plan: { ...plan, scenes: sorted } });
+    return NextResponse.json({
+      plan: { ...plan, scenes: sorted },
+    });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Unknown error";
     return NextResponse.json({ error: msg }, { status: 502 });

@@ -20,8 +20,20 @@ export type ScenePlan = {
   narration: string;
 };
 
+/** A recurring character other than the protagonist (for consistent illustration). */
+export type SupportingCharacter = {
+  /** Short label used in scenes, e.g. "Partner", "Physical therapist". */
+  roleLabel: string;
+  /** Detailed, stable visual description (face, age, hair, clothing, palette). */
+  visualDescription: string;
+};
+
 export type StoryPlan = {
   bookTitle: string;
   dedication: string;
+  /** AI-expanded visual bible for the hero—injected into every image prompt. */
+  refinedAvatarDescription: string;
+  /** Zero or more important recurring characters from the story (empty if none). */
+  supportingCharacters: SupportingCharacter[];
   scenes: ScenePlan[];
 };
