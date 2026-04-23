@@ -1,14 +1,16 @@
 export type ArtStyle =
   | "watercolor"
   | "soft_pastel"
-  | "picture_book_flat"
+  | "luminous_dream"
+  | "twilight_ink"
   | "warm_gouache"
   | "ink_wash";
 
 export const ART_STYLE_LABELS: Record<ArtStyle, string> = {
   watercolor: "Gentle watercolor (soft edges, paper texture)",
   soft_pastel: "Soft pastel (dreamy, luminous)",
-  picture_book_flat: "Modern flat picture-book (bold shapes, friendly)",
+  luminous_dream: "Luminous dream (soft glow, fine dust of light, numinous)",
+  twilight_ink: "Twilight ink (cool ink wash with faint inner light)",
   warm_gouache: "Warm gouache (cozy, hand-painted)",
   ink_wash: "Minimal ink wash (calm, spacious)",
 };
@@ -30,6 +32,7 @@ export type SupportingCharacter = {
 
 export type StoryPlan = {
   bookTitle: string;
+  /** Always a string. Planner returns "" so the user can write their own. */
   dedication: string;
   /** AI-expanded visual bible for the hero—injected into every image prompt. */
   refinedAvatarDescription: string;

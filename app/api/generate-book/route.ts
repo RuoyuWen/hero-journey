@@ -82,7 +82,7 @@ async function elevenLabsSoundscape(apiKey: string): Promise<string> {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      text: "Soft, warm ambient music: gentle piano chords, airy pads, slow tempo, hopeful and peaceful mood, no percussion hits, suitable as background under spoken narration for a healing picture book.",
+      text: "Contemplative, spacious ambient music: slow drones, distant piano, faint bells, airy pads, no percussion hits, suitable as a tender background under first-person spoken recollection; reverent and still, neither sad nor triumphant.",
       model_id: "eleven_text_to_sound_v2",
       loop: true,
       duration_seconds: 30,
@@ -146,9 +146,9 @@ export async function POST(req: Request) {
   if (!elevenKey) {
     return NextResponse.json({ error: "ElevenLabs API key is required." }, { status: 400 });
   }
-  if (!style || !scenes || scenes.length !== 8) {
+  if (!style || !scenes || scenes.length < 4 || scenes.length > 10) {
     return NextResponse.json(
-      { error: "Eight scenes and art style are required." },
+      { error: "Between 4 and 10 scenes and an art style are required." },
       { status: 400 }
     );
   }

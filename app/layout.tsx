@@ -15,9 +15,9 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Hero Journey — Healing Picture Book",
+  title: "Luminaria — A book of what you saw",
   description:
-    "Turn personal stories into a warm, spoken picture book for stroke survivors and loved ones.",
+    "Turn a Near-Death Experience into a quiet, illustrated picture book — in your own words — to share with family and friends, or to keep for yourself.",
 };
 
 export default function RootLayout({

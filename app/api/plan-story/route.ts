@@ -8,6 +8,9 @@ const SCHEMA_NAME = "story_plan";
 /** Story outline + image/narration descriptions (Chat Completions). */
 const DEFAULT_PLANNER_MODEL = "gpt-4.1";
 
+const MIN_SCENES = 4;
+const MAX_SCENES = 10;
+
 export async function POST(req: Request) {
   let body: {
     openaiKey?: string;
@@ -15,6 +18,7 @@ export async function POST(req: Request) {
     avatarDescription?: string;
     style?: ArtStyle;
     model?: string;
+    targetSceneCount?: number;
   };
   try {
     body = await req.json();
@@ -27,6 +31,19 @@ export async function POST(req: Request) {
   const avatarDescription = body.avatarDescription?.trim();
   const style = body.style;
   const model = body.model?.trim() || DEFAULT_PLANNER_MODEL;
+
+  let targetSceneCount: number | undefined;
+  if (typeof body.targetSceneCount === "number" && Number.isFinite(body.targetSceneCount)) {
+    const n = Math.round(body.targetSceneCount);
+    if (n >= MIN_SCENES && n <= MAX_SCENES) {
+      targetSceneCount = n;
+    } else {
+      return NextResponse.json(
+        { error: `targetSceneCount must be between ${MIN_SCENES} and ${MAX_SCENES}.` },
+        { status: 400 }
+      );
+    }
+  }
 
   if (!openaiKey) {
     return NextResponse.json({ error: "OpenAI API key is required." }, { status: 400 });
@@ -68,7 +85,7 @@ export async function POST(req: Request) {
         refinedAvatarDescription: {
           type: "string",
           description:
-            "AI-refined model-sheet description of the protagonist for consistent art.",
+            "Illustrator's model-sheet description of the protagonist for consistent art, faithful to the user's notes.",
         },
         supportingCharacters: {
           type: "array",
@@ -86,14 +103,14 @@ export async function POST(req: Request) {
         },
         scenes: {
           type: "array",
-          minItems: 8,
-          maxItems: 8,
+          minItems: MIN_SCENES,
+          maxItems: MAX_SCENES,
           items: {
             type: "object",
             additionalProperties: false,
             required: ["sceneNumber", "title", "imagePrompt", "narration"],
             properties: {
-              sceneNumber: { type: "integer", minimum: 1, maximum: 8 },
+              sceneNumber: { type: "integer", minimum: 1, maximum: MAX_SCENES },
               title: { type: "string" },
               imagePrompt: { type: "string" },
               narration: { type: "string" },
@@ -107,10 +124,13 @@ export async function POST(req: Request) {
   try {
     const completion = await client.chat.completions.create({
       model,
-      temperature: 0.7,
+      temperature: 0.4,
       messages: [
         { role: "system", content: systemInstructionsForPlanner() },
-        { role: "user", content: userPromptForPlanner(story, avatarDescription, style) },
+        {
+          role: "user",
+          content: userPromptForPlanner(story, avatarDescription, style, targetSceneCount),
+        },
       ],
       response_format: {
         type: "json_schema",
@@ -133,11 +153,25 @@ export async function POST(req: Request) {
     if (!Array.isArray(plan.supportingCharacters)) {
       return NextResponse.json({ error: "Invalid supportingCharacters in plan." }, { status: 502 });
     }
+    if (!Array.isArray(plan.scenes) || plan.scenes.length < MIN_SCENES || plan.scenes.length > MAX_SCENES) {
+      return NextResponse.json(
+        { error: `Story plan must contain ${MIN_SCENES}–${MAX_SCENES} scenes.` },
+        { status: 502 }
+      );
+    }
+    if (typeof targetSceneCount === "number" && plan.scenes.length !== targetSceneCount) {
+      return NextResponse.json(
+        {
+          error: `Planner returned ${plan.scenes.length} scenes but ${targetSceneCount} were requested; try again.`,
+        },
+        { status: 502 }
+      );
+    }
     const sorted = [...plan.scenes].sort((a, b) => a.sceneNumber - b.sceneNumber);
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < sorted.length; i++) {
       if (sorted[i]?.sceneNumber !== i + 1) {
         return NextResponse.json(
-          { error: "Story plan scenes must be numbered 1–8 in order." },
+          { error: `Story plan scenes must be numbered 1–${sorted.length} in order.` },
           { status: 502 }
         );
       }

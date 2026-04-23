@@ -120,12 +120,14 @@ export function PictureBookPlayer({
     >
       <header className="mb-6 text-center">
         <p className="text-xs font-medium uppercase tracking-widest text-sage">
-          Your picture book
+          Your Luminaria
         </p>
         <h2 id="book-title" className="font-serif text-3xl font-semibold text-ink">
           {bookTitle}
         </h2>
-        <p className="mt-2 font-serif text-lg text-stone-600">{dedication}</p>
+        {dedication?.trim() ? (
+          <p className="mt-2 font-serif text-lg text-stone-600">{dedication}</p>
+        ) : null}
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
