@@ -9,8 +9,8 @@ const DEFAULT_VOICE = "JBFqnCBsd6RMkjVDRZzb";
 /** ElevenLabs enforces a concurrent request cap per account (often 5 on lower tiers). */
 const ELEVENLABS_MAX_CONCURRENT = 5;
 
-/** OpenAI Images API — GPT Image 1.5 snapshot. */
-const IMAGE_MODEL = "gpt-image-1";
+/** OpenAI Images API — GPT Image 2. */
+const IMAGE_MODEL = "gpt-image-2";
 
 async function mapInBatches<T, R>(
   items: T[],
